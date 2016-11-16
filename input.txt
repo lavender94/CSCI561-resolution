@@ -6,7 +6,7 @@ H(John)
 G(Bob)
 G(Tom)
 14
-(A(x) => H(x))
+((A(x) & A(x)) => H(x))
 (D(x,y) => ~H(y))
 ((B(x,y) & C(x,y)) => A(x))
 B(John,Alice)

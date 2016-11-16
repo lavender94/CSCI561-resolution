@@ -20,6 +20,7 @@ public:
 	typedef std::list<int>::const_iterator const_iterator;
 
 	bool operator<(const ARG_LIST &) const;
+	bool operator==(const ARG_LIST &) const;
 };
 
 ARG_LIST::ARG_LIST(const ARG_LIST &b)
@@ -62,6 +63,19 @@ inline bool ARG_LIST::operator<(const ARG_LIST &b) const
 	return false;
 }
 
+inline bool ARG_LIST::operator==(const ARG_LIST &b) const
+{
+	const std::list<int> &bargs = b.args;
+	if (args.size() == bargs.size())
+	{
+		for (const_iterator ai = args.begin(), bi = bargs.begin(); ai != args.end(); ++ai, ++bi)
+			if (*ai != *bi)
+				return false;
+		return true;
+	}
+	return false;
+}
+
 class CNF
 {
 public:
@@ -72,6 +86,8 @@ public:
 
 	void reindex_variable();
 	void index(); // index predicates
+
+	void replace(int dict[]);
 
 	void print() const;
 
@@ -115,18 +131,32 @@ void CNF::reindex_variable()
 	{
 		std::set<ARG_LIST> *l_args = iter->second;
 		std::list<ARG_LIST> backup;
-		for (std::set<ARG_LIST>::iterator it = l_args->begin(); it != l_args->end(); ++it)
+		std::set<ARG_LIST>::iterator it = l_args->begin();
+		while (it != l_args->end())
 		{
+			bool modified = false;
 			ARG_LIST temp;
 			for (ARG_LIST::const_iterator _iter = it->args.begin(); _iter != it->args.end(); ++_iter)
 				if (*_iter < 0) // variable
-					temp.args.push_back(reindex.insert(std::pair<int, int>(*_iter, ~(int)(reindex.size()))).first->second);
+				{
+					int id = reindex.insert(std::pair<int, int>(*_iter, ~(int)(reindex.size()))).first->second;
+					if (id != *_iter)
+						modified = true;
+					temp.args.push_back(id);
+				}
 				else
 					temp.args.push_back(*_iter);
-			backup.push_back(temp);
+			if (modified)
+			{
+				backup.push_back(temp);
+				std::set<ARG_LIST>::iterator _it = it;
+				++it;
+				l_args->erase(_it);
+			}
+			else
+				++it;
 		}
-		delete l_args;
-		iter->second = new std::set<ARG_LIST>(backup.begin(), backup.end());
+		l_args->insert(backup.begin(), backup.end());
 	}
 	n_variables = reindex.size();
 }
@@ -136,6 +166,41 @@ void CNF::index()
 	key_set.clear();
 	for (iterator iter = clauses.begin(); iter != clauses.end(); ++iter)
 		key_set.insert(iter->first);
+}
+
+void CNF::replace(int dict[])
+{
+	for (iterator iter = clauses.begin(); iter != clauses.end(); ++iter)
+	{
+		std::set<ARG_LIST> *l_args = iter->second;
+		std::list<ARG_LIST> backup;
+		std::set<ARG_LIST>::iterator it = l_args->begin();
+		while (it != l_args->end())
+		{
+			bool modified = false;
+			ARG_LIST temp;
+			for (ARG_LIST::const_iterator _iter = it->args.begin(); _iter != it->args.end(); ++_iter)
+				if (*_iter < 0) // variable
+				{
+					int id = dict[~(*_iter)];
+					if (id != *_iter)
+						modified = true;
+					temp.args.push_back(id);
+				}
+				else
+					temp.args.push_back(*_iter);
+			if (modified)
+			{
+				backup.push_back(temp);
+				std::set<ARG_LIST>::iterator _it = it;
+				++it;
+				l_args->erase(_it);
+			}
+			else
+				++it;
+		}
+		l_args->insert(backup.begin(), backup.end());
+	}
 }
 
 void CNF::print() const
