@@ -37,7 +37,7 @@ int read_input(list<CNF*> &query, CNFs *kb)
 		AST->simplify();
 		CNFs *cnfs = AST->cnfs();
 		delete AST;
-		CNF *cnf = new CNF(*(cnfs->sentences[0]));
+		CNF *cnf = new CNF(*(cnfs->sentences.begin()));
 		delete cnfs;
 		cnf->index();
 		query.push_back(cnf);
@@ -98,7 +98,7 @@ int main()
 	printf("KB:\n");
 	kb->print();
 	printf("Func Table:\n");
-	map<int, set<unsigned>*> &func_table = kb->func_table;
+	map<int, list<CNFs::iterator>*> &func_table = kb->func_table;
 	for (CNFs::iterator_table iter = kb->func_table.begin(); iter != kb->func_table.end(); ++iter)
 	{
 		if (iter->first < 0) // not
@@ -106,13 +106,15 @@ int main()
 		else
 			printf("F%d:(", iter->first);
 		bool first = true;
-		for (set<unsigned>::iterator sit = iter->second->begin(); sit != iter->second->end(); ++sit)
+		for (list<CNFs::iterator>::iterator sit = iter->second->begin(); sit != iter->second->end(); ++sit)
 		{
 			if (first)
 				first = false;
 			else
 				printf(", ");
-			printf("%u", *sit);
+			printf("{");
+			(*sit)->print();
+			printf("}");
 		}
 		printf(")\n");
 	}

@@ -249,9 +249,9 @@ CNFs *Function::cnfs()
 	int _id = id;
 	if (op == NOT)
 		_id = ~_id;
-	CNF *cnf = new CNF(_id, args);
+	CNF cnf(_id, args);
 	CNFs *res = new CNFs();
-	res->sentences.push_back(cnf);
+	res->sentences.insert(cnf);
 	return res;
 }
 
