@@ -49,7 +49,7 @@ public:
 	virtual void simplify() = 0;
 	virtual CNFs *cnfs() = 0;
 
-	virtual void print();
+	virtual void print() = 0;
 
 	virtual ~Expression() {}
 };

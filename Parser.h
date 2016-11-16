@@ -22,7 +22,6 @@ public:
 	std::string next();
 	
 private:
-	void skip_space();
 	bool isCharactor(char c);
 
 	unsigned ptr, len;
@@ -32,7 +31,6 @@ private:
 void Parser::init()
 {
 	ptr = 0;
-	skip_space();
 }
 
 void Parser::feed(const char *line)

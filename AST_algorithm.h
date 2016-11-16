@@ -20,6 +20,13 @@ Expression *EXP(Parser &p)
 	{
 	case '(':
 		return OP(p);
+	case '~':
+	{
+		Unary *ptr = new Unary();
+		ptr->op = NOT;
+		ptr->first = EXP(p);
+		return ptr;
+	}
 	default: // word
 		if ('A' <= next[0] && next[0] <= 'Z')
 			return FUNC(p, next);

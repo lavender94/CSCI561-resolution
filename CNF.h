@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <string>
+#include <set>
 
 class ARG_LIST
 {
@@ -50,12 +51,17 @@ public:
 	~CNF();
 
 	void reindex_variable();
+	void index(); // index predicates
 
 	void print();
 
 	std::map<int, std::list<ARG_LIST*>*> clauses;
 	typedef std::map<int, std::list<ARG_LIST*>*>::iterator iterator;
 	typedef std::map<int, std::list<ARG_LIST*>*>::const_iterator const_iterator;
+
+	std::set<int> key_set;
+	typedef std::set<int>::iterator iterator_key;
+	typedef std::set<int>::const_iterator const_iterator_key;
 
 	unsigned n_variables;
 
@@ -67,7 +73,7 @@ CNF::CNF(int id, ARG_LIST *arg_list) : n_variables(0)
 	clauses[id] = new std::list<ARG_LIST*>(1, arg_list);
 }
 
-CNF::CNF(const CNF &b) : n_variables(b.n_variables)
+CNF::CNF(const CNF &b) : n_variables(b.n_variables), key_set(b.key_set)
 {
 	for (const_iterator citer = b.clauses.begin(); citer != b.clauses.end(); ++citer)
 	{
@@ -105,6 +111,13 @@ void CNF::reindex_variable()
 		}
 	}
 	n_variables = reindex.size();
+}
+
+void CNF::index()
+{
+	key_set.clear();
+	for (iterator iter = clauses.begin(); iter != clauses.end(); ++iter)
+		key_set.insert(iter->first);
 }
 
 void CNF::print()
@@ -150,12 +163,17 @@ public:
 	~CNFs();
 
 	void reindex_variable();
+	void index(); // index predicates
 
 	void print();
 
 	std::vector<CNF*> sentences;
 	typedef std::vector<CNF*>::iterator iterator;
 	typedef std::vector<CNF*>::const_iterator const_iterator;
+
+	std::map<int, std::set<unsigned>*> func_table;
+	typedef std::map<int, std::set<unsigned>*>::iterator iterator_table;
+	typedef std::map<int, std::set<unsigned>*>::const_iterator const_iterator_table;
 
 	void operator&=(const CNFs &);
 	void combine(const CNFs &, const CNFs &);
@@ -166,18 +184,38 @@ CNFs::CNFs(const CNFs &b)
 	sentences.reserve(b.sentences.size());
 	for (const_iterator citer = b.sentences.begin(); citer != b.sentences.end(); ++citer)
 		sentences.push_back(new CNF(**citer));
+	for (const_iterator_table citer = b.func_table.begin(); citer != b.func_table.end(); ++citer)
+		func_table[citer->first] = new std::set<unsigned>(*(citer->second));
 }
 
 CNFs::~CNFs()
 {
 	for (iterator iter = sentences.begin(); iter != sentences.end(); ++iter)
 		delete *iter;
+	for (iterator_table iter = func_table.begin(); iter != func_table.end(); ++iter)
+		delete iter->second;
 }
 
 void CNFs::reindex_variable()
 {
 	for (iterator iter = sentences.begin(); iter != sentences.end(); ++iter)
 		(*iter)->reindex_variable();
+}
+
+void CNFs::index()
+{
+	for (iterator iter = sentences.begin(); iter != sentences.end(); ++iter)
+		(*iter)->index();
+	func_table.clear();
+	unsigned p = 0;
+	for (iterator iter = sentences.begin(); iter != sentences.end(); ++iter, ++p)
+		for (CNF::iterator_key kiter = (*iter)->key_set.begin(); kiter != (*iter)->key_set.end(); ++kiter)
+		{
+			iterator_table titer = func_table.find(*kiter);
+			if (titer == func_table.end())
+				titer = func_table.insert(std::pair<int, std::set<unsigned>*>(*kiter, new std::set<unsigned>())).first;
+			titer->second->insert(p);
+		}
 }
 
 void CNFs::print()
