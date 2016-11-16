@@ -5,6 +5,7 @@
 #include <list>
 #include <string>
 #include <set>
+#include <algorithm>
 
 class ARG_LIST
 {
@@ -12,11 +13,13 @@ public:
 	ARG_LIST() {}
 	ARG_LIST(const ARG_LIST &);
 
-	void print();
+	void print() const;
 
 	std::list<int> args;
 	typedef std::list<int>::iterator iterator;
 	typedef std::list<int>::const_iterator const_iterator;
+
+	bool operator<(const ARG_LIST &) const;
 };
 
 ARG_LIST::ARG_LIST(const ARG_LIST &b)
@@ -24,11 +27,11 @@ ARG_LIST::ARG_LIST(const ARG_LIST &b)
 	args.assign(b.args.begin(), b.args.end());
 }
 
-void ARG_LIST::print()
+void ARG_LIST::print() const
 {
 	printf("(");
 	bool first = true;
-	for (iterator iter = args.begin(); iter != args.end(); ++iter)
+	for (const_iterator iter = args.begin(); iter != args.end(); ++iter)
 	{
 		if (first)
 			first = false;
@@ -42,22 +45,39 @@ void ARG_LIST::print()
 	printf(")");
 }
 
+inline bool ARG_LIST::operator<(const ARG_LIST &b) const
+{
+	const std::list<int> &bargs = b.args;
+	if (args.size() < bargs.size())
+		return true;
+	if (args.size() > bargs.size())
+		return false;
+	for (const_iterator ai = args.begin(), bi = bargs.begin(); ai != args.end(); ++ai, ++bi)
+	{
+		if (*ai < *bi)
+			return true;
+		if (*ai > *bi)
+			return false;
+	}
+	return false;
+}
+
 class CNF
 {
 public:
 	CNF() : n_variables(0) {}
-	CNF(int, ARG_LIST*);
+	CNF(int, const ARG_LIST &);
 	CNF(const CNF &);
 	~CNF();
 
 	void reindex_variable();
 	void index(); // index predicates
 
-	void print();
+	void print() const;
 
-	std::map<int, std::list<ARG_LIST*>*> clauses;
-	typedef std::map<int, std::list<ARG_LIST*>*>::iterator iterator;
-	typedef std::map<int, std::list<ARG_LIST*>*>::const_iterator const_iterator;
+	std::map<int, std::set<ARG_LIST>*> clauses;
+	typedef std::map<int, std::set<ARG_LIST>*>::iterator iterator;
+	typedef std::map<int, std::set<ARG_LIST>*>::const_iterator const_iterator;
 
 	std::set<int> key_set;
 	typedef std::set<int>::iterator iterator_key;
@@ -68,32 +88,24 @@ public:
 	void operator|=(const CNF &);
 };
 
-CNF::CNF(int id, ARG_LIST *arg_list) : n_variables(0)
+CNF::CNF(int id, const ARG_LIST &arg_list) : n_variables(0)
 {
-	clauses[id] = new std::list<ARG_LIST*>(1, arg_list);
+	std::set<ARG_LIST> *al = new std::set<ARG_LIST>();
+	al->insert(arg_list);
+	clauses[id] = al;
 }
 
 CNF::CNF(const CNF &b) : n_variables(b.n_variables), key_set(b.key_set)
 {
+	clauses.clear();
 	for (const_iterator citer = b.clauses.begin(); citer != b.clauses.end(); ++citer)
-	{
-		std::list<ARG_LIST*> *new_args = new std::list<ARG_LIST*>();
-		const std::list<ARG_LIST*> *l_args = citer->second;
-		for (std::list<ARG_LIST*>::const_iterator cit = l_args->begin(); cit != l_args->end(); ++cit)
-			new_args->push_back(new ARG_LIST(**cit));
-		clauses[citer->first] = new_args;
-	}
+		clauses[citer->first] = new std::set<ARG_LIST>(citer->second->begin(), citer->second->end());
 }
 
 CNF::~CNF()
 {
 	for (iterator iter = clauses.begin(); iter != clauses.end(); ++iter)
-	{
-		std::list<ARG_LIST*> *l_args = iter->second;
-		for (std::list<ARG_LIST*>::iterator it = l_args->begin(); it != l_args->end(); ++it)
-			delete *it;
-	}
-	clauses.clear();
+		delete iter->second;
 }
 
 void CNF::reindex_variable()
@@ -101,14 +113,20 @@ void CNF::reindex_variable()
 	std::map<int, int> reindex;
 	for (iterator iter = clauses.begin(); iter != clauses.end(); ++iter)
 	{
-		std::list<ARG_LIST*> *l_args = iter->second;
-		for (std::list<ARG_LIST*>::iterator it = l_args->begin(); it != l_args->end(); ++it)
+		std::set<ARG_LIST> *l_args = iter->second;
+		std::list<ARG_LIST> backup;
+		for (std::set<ARG_LIST>::iterator it = l_args->begin(); it != l_args->end(); ++it)
 		{
-			ARG_LIST *al = *it;
-			for (ARG_LIST::iterator _iter = al->args.begin(); _iter != al->args.end(); ++_iter)
+			ARG_LIST temp;
+			for (ARG_LIST::const_iterator _iter = it->args.begin(); _iter != it->args.end(); ++_iter)
 				if (*_iter < 0) // variable
-					*_iter = reindex.insert(std::pair<int, int>(*_iter, ~(int)(reindex.size()))).first->second;
+					temp.args.push_back(reindex.insert(std::pair<int, int>(*_iter, ~(int)(reindex.size()))).first->second);
+				else
+					temp.args.push_back(*_iter);
+			backup.push_back(temp);
 		}
+		delete l_args;
+		iter->second = new std::set<ARG_LIST>(backup.begin(), backup.end());
 	}
 	n_variables = reindex.size();
 }
@@ -120,13 +138,13 @@ void CNF::index()
 		key_set.insert(iter->first);
 }
 
-void CNF::print()
+void CNF::print() const
 {
 	bool first = true;
-	for (iterator iter = clauses.begin(); iter != clauses.end(); ++iter)
+	for (const_iterator iter = clauses.begin(); iter != clauses.end(); ++iter)
 	{
-		std::list<ARG_LIST*> *l_args = iter->second;
-		for (std::list<ARG_LIST*>::iterator it = l_args->begin(); it != l_args->end(); ++it)
+		std::set<ARG_LIST> *l_args = iter->second;
+		for (std::set<ARG_LIST>::const_iterator it = l_args->begin(); it != l_args->end(); ++it)
 		{
 			if (first)
 				first = false;
@@ -136,7 +154,7 @@ void CNF::print()
 				printf("~F%d", ~(iter->first));
 			else
 				printf("F%d", iter->first);
-			(*it)->print();
+			it->print();
 		}
 	}
 }
@@ -147,11 +165,10 @@ void CNF::operator|=(const CNF &b)
 	{
 		iterator iter = clauses.find(citer->first);
 		if (iter == clauses.end())
-			iter = clauses.insert(std::pair<int, std::list<ARG_LIST*>*>(citer->first, new std::list<ARG_LIST*>())).first;
-		std::list<ARG_LIST*> *l_args = iter->second;
-		const std::list<ARG_LIST*> *c_l_args = citer->second;
-		for (std::list<ARG_LIST*>::const_iterator cit = c_l_args->begin(); cit != c_l_args->end(); ++cit)
-			l_args->push_back(new ARG_LIST(**cit));
+			iter = clauses.insert(std::pair<int, std::set<ARG_LIST>*>(citer->first, new std::set<ARG_LIST>())).first;
+		std::set<ARG_LIST> *l_args = iter->second;
+		const std::set<ARG_LIST> *c_l_args = citer->second;
+		l_args->insert(c_l_args->begin(), c_l_args->end());
 	}
 }
 
@@ -165,7 +182,7 @@ public:
 	void reindex_variable();
 	void index(); // index predicates
 
-	void print();
+	void print() const;
 
 	std::vector<CNF*> sentences;
 	typedef std::vector<CNF*>::iterator iterator;
@@ -181,6 +198,7 @@ public:
 
 CNFs::CNFs(const CNFs &b)
 {
+	sentences.clear();
 	sentences.reserve(b.sentences.size());
 	for (const_iterator citer = b.sentences.begin(); citer != b.sentences.end(); ++citer)
 		sentences.push_back(new CNF(**citer));
@@ -218,10 +236,10 @@ void CNFs::index()
 		}
 }
 
-void CNFs::print()
+void CNFs::print() const
 {
 	printf("{\n");
-	for (iterator iter = sentences.begin(); iter != sentences.end(); ++iter)
+	for (const_iterator iter = sentences.begin(); iter != sentences.end(); ++iter)
 	{
 		(*iter)->print();
 		printf("\n");
