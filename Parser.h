@@ -38,7 +38,11 @@ void Parser::init()
 void Parser::feed(const char *line)
 {
 	len = strlen(line);
-	memcpy(this->line, line, len + 1);
+	unsigned _p = 0;
+	for (unsigned p = 0; p < len; ++p)
+		if (line[p] != ' ')
+			(this->line)[_p++] = line[p];
+	(this->line)[_p] = '\0';
 	init();
 }
 
@@ -47,7 +51,6 @@ std::string Parser::next()
 	if (ptr == len)
 		return "";
 	char c = line[ptr++];
-	skip_space();
 	switch (c)
 	{
 	case '(':
@@ -62,7 +65,6 @@ std::string Parser::next()
 		return "|";
 	case '=':
 		ptr += 1;
-		skip_space();
 		return "=>";
 	case ',':
 		return ",";
@@ -74,18 +76,12 @@ std::string Parser::next()
 			while (isCharactor(line[ptr]))
 			{
 				word[pw++] = line[ptr++];
-				skip_space();
 			}
 			word[pw] = '\0';
 			return std::string(word);
 		}
 		return "";
 	}
-}
-
-void Parser::skip_space()
-{
-	while (line[ptr] == ' ') ptr += 1;
 }
 
 bool Parser::isCharactor(char c)
