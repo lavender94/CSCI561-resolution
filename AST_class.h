@@ -245,7 +245,7 @@ CNFs *Function::cnfs()
 {
 	ARG_LIST args;
 	for (std::list<Expression*>::iterator iter = arg_list.begin(); iter != arg_list.end(); ++iter)
-		args.args.push_back((int)((*iter)->cnfs()));
+		args.args.push_back((long)((*iter)->cnfs()));
 	int _id = id;
 	if (op == NOT)
 		_id = ~_id;
