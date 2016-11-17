@@ -5,6 +5,18 @@
 #include <stdio.h>
 #include "CNF.h"
 
+#ifdef DEBUG
+#define RESOLUTION_DBG(X) X
+#define RESOLUTION_INF(X) X
+#else
+#define RESOLUTION_DBG(X)
+#ifdef INFO
+#define RESOLUTION_INF(X) X
+#else
+#define RESOLUTION_INF(X)
+#endif // INFO
+#endif // DEBUG
+
 void map_variable(int from, int to, 
 	int *dicta, unsigned n_v_a, int *dictb, unsigned n_v_b)
 {
@@ -78,18 +90,18 @@ bool resolution(CNF &query, const CNFs &kb, CNFs &history)
 			if (unify(*q_arg, *cnf_arg, dictq, n_v_q, dicts, n_v_s))
 			{
 				CNF uni_q(query), uni_s(**cnf);
-				printf("\n:");
-				uni_q.print();
-				printf("\n:");
-				uni_s.print();
+				RESOLUTION_DBG(printf("\n:"));
+				RESOLUTION_DBG(uni_q.print());
+				RESOLUTION_DBG(printf("\n:"));
+				RESOLUTION_DBG(uni_s.print());
 				uni_q.replace(dictq);
 				uni_s.replace(dicts);
 				uni_q |= uni_s;
 				uni_q.erase_contradiction();
 				uni_q.reindex_variable();
-				printf("\n=>");
-				uni_q.print();
-				printf("\n");
+				RESOLUTION_DBG(printf("\n=>"));
+				RESOLUTION_DBG(uni_q.print());
+				RESOLUTION_DBG(printf("\n"));
 				std::pair<CNFs::iterator, bool> ret = history.sentences.insert(uni_q);
 				if (ret.second == false)
 					continue;

@@ -1,9 +1,24 @@
+//#define DEBUG
+//#define INFO
+
 #include <stdio.h>
 #include <list>
 #include "Parser.h"
 #include "AST.h"
 #include "CNF.h"
 #include "resolution.h"
+
+#ifdef DEBUG
+#define DBG(X) X
+#define INF(X) X
+#else
+#define DBG(X)
+#ifdef INFO
+#define INF(X) X
+#else
+#define INF(X)
+#endif // INFO
+#endif // DEBUG
 
 #define BUFFERSIZE 2*1024*1024
 
@@ -77,33 +92,36 @@ int main()
 	int ans = read_input(query, kb);
 	if (ans != 0)
 		return ans;
-	/*char sentence[] = "~(((A(x) & B e l(x)) & (Charl( y) | (~Fe n(M n))) ) = > (Del ta(J hon) & E(Mei, z)))";
-	Parser p(strlen(sentence) + 5);
-	p.feed(sentence);
-	Expression *AST = buildAST(p);
-	AST->print();
-	printf("\n");
-	AST->simplify();
-	AST->print();
-	printf("\n");
-	CNFs *cnfs = AST->cnfs();
-	cnfs->print();
-	cnfs->reindex_variable();
-	cnfs->print();*/
-	printf("KB:\n");
-	kb->print();
-	printf("Query:\n");
+	INF(printf("KB:\n"));
+	INF(kb->print());
+	INF(printf("Query:\n"));
+	FILE *fp = fopen("output.txt", "w");
+	if (!fp)
+	{
+		printf("Unable to create output.txt\n");
+		for (list<CNF*>::iterator iter = query.begin(); iter != query.end(); ++iter)
+			delete *iter;
+		delete kb;
+		return 2;
+	}
 	for (list<CNF*>::iterator iter = query.begin(); iter != query.end(); ++iter)
 	{
-		(*iter)->print();
-		printf(":");
+		INF((*iter)->print());
+		INF(printf(":"));
 		CNFs history;
 		if (resolution(**iter, *kb, history))
-			printf("TRUE\n");
+		{
+			fprintf(fp, "TRUE\n");
+			INF(printf("TRUE\n"));
+		}
 		else
-			printf("FALSE\n");
+		{
+			fprintf(fp, "FALSE\n");
+			INF(printf("FALSE\n"));
+		}
 		delete *iter;
 	}
+	fclose(fp);
 	delete kb;
 	return 0;
 }

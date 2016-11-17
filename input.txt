@@ -1,14 +1,10 @@
-2
-Ancestor(Liz,Billy)
-Ancestor(Liz,Bob)
-10
-Mother(Liz,Charley)
-Father(Charley,Billy)
-(foo1(x,y) => Mother(x,y))
-(foo1(x,y) => Father(x,y))
-(foo1(x,y) => foo2(x,y))
-(foo2(x,y) => foo1(x,y))
-((~Mother(x,y)) | Parent(x,y))
-((~Father(x,y)) | Parent(x,y))
-((~Parent(x,y)) | Ancestor(x,y))
-((~(Parent(x,y) & Ancestor(y,z))) | Ancestor(x,z))
+1
+Kills(Curiosity, Tuna)
+7
+Dog(D)
+Owns(Jack, D)
+((Dog(y) & Owns(x, y)) => AnimalLover(x))
+~((AnimalLover(x) & Animal(y)) & Kills(x,y))
+(Kills(Jack, Tuna) | Kills(Curiosity, Tuna))
+Cat (Tuna)
+(Cat(x) => Animal(x))
