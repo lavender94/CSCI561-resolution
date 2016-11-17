@@ -6,6 +6,8 @@
 class Parser
 {
 public:
+	static inline bool isCharactor(char c);
+
 	Parser(unsigned size) : ptr(0), len(0)
 	{
 		line = new char[size];
@@ -22,11 +24,14 @@ public:
 	std::string next();
 	
 private:
-	bool isCharactor(char c);
-
 	unsigned ptr, len;
 	char *line, *word;
 };
+
+inline bool Parser::isCharactor(char c)
+{
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9');
+}
 
 void Parser::init()
 {
@@ -80,9 +85,4 @@ std::string Parser::next()
 		}
 		return "";
 	}
-}
-
-bool Parser::isCharactor(char c)
-{
-	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
 }

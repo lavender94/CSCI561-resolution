@@ -3,6 +3,7 @@
 #include "Parser.h"
 #include "AST.h"
 #include "CNF.h"
+#include "resolution.h"
 
 #define BUFFERSIZE 2*1024*1024
 
@@ -63,7 +64,7 @@ int read_input(list<CNF*> &query, CNFs *kb)
 	}
 	fclose(fp);
 	delete buffer;
-
+	kb->erase_contradiction();
 	kb->reindex_variable();
 	kb->index();
 	return 0;
@@ -89,34 +90,20 @@ int main()
 	cnfs->print();
 	cnfs->reindex_variable();
 	cnfs->print();*/
+	printf("KB:\n");
+	kb->print();
 	printf("Query:\n");
 	for (list<CNF*>::iterator iter = query.begin(); iter != query.end(); ++iter)
 	{
 		(*iter)->print();
-		printf("\n");
-	}
-	printf("KB:\n");
-	kb->print();
-	printf("Func Table:\n");
-	map<int, list<CNFs::iterator>*> &func_table = kb->func_table;
-	for (CNFs::iterator_table iter = kb->func_table.begin(); iter != kb->func_table.end(); ++iter)
-	{
-		if (iter->first < 0) // not
-			printf("~F%d:(", ~(iter->first));
+		printf(":");
+		CNFs history;
+		if (resolution(**iter, *kb, history))
+			printf("TRUE\n");
 		else
-			printf("F%d:(", iter->first);
-		bool first = true;
-		for (list<CNFs::iterator>::iterator sit = iter->second->begin(); sit != iter->second->end(); ++sit)
-		{
-			if (first)
-				first = false;
-			else
-				printf(", ");
-			printf("{");
-			(*sit)->print();
-			printf("}");
-		}
-		printf(")\n");
+			printf("FALSE\n");
+		delete *iter;
 	}
+	delete kb;
 	return 0;
 }

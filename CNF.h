@@ -87,7 +87,8 @@ public:
 	bool reindex_variable();
 	void index() const; // index predicates
 
-	void replace(const int dict[]);
+	void replace(const int *dict);
+	bool erase_contradiction();
 
 	void print() const;
 
@@ -124,6 +125,7 @@ CNF::~CNF()
 {
 	for (iterator iter = clauses.begin(); iter != clauses.end(); ++iter)
 		delete iter->second;
+	clauses.clear();
 }
 
 bool CNF::reindex_variable()
@@ -176,7 +178,7 @@ void CNF::index() const
 		key_set.insert(iter->first);
 }
 
-void CNF::replace(const int dict[])
+void CNF::replace(const int *dict)
 {
 	for (iterator iter = clauses.begin(); iter != clauses.end(); ++iter)
 	{
@@ -211,8 +213,54 @@ void CNF::replace(const int dict[])
 	}
 }
 
+bool CNF::erase_contradiction()
+{
+	bool erased = false;
+	iterator iter = clauses.begin();
+	while (iter != clauses.end() && iter->first < 0)
+	{
+		iterator _iter = clauses.find(~(iter->first));
+		if (_iter == clauses.end())
+		{
+			++iter;
+			continue;
+		}
+		std::set<ARG_LIST> *al = iter->second, *bl = _iter->second;
+		std::set<ARG_LIST>::iterator ai = al->begin(), bi = bl->begin();
+		while (ai != al->end() && bi != bl->end())
+		{
+			if (*ai == *bi)
+			{
+				std::set<ARG_LIST>::iterator _ai = ai++, _bi = bi++;
+				al->erase(_ai);
+				bl->erase(_bi);
+				erased = true;
+			}
+			else if (*ai < *bi) ++ai;
+			else ++bi;
+		}
+		if (bl->empty())
+		{
+			delete bl;
+			clauses.erase(_iter);
+		}
+		_iter = iter++;
+		if (al->empty())
+		{
+			delete al;
+			clauses.erase(_iter);
+		}
+	}
+	return erased;
+}
+
 void CNF::print() const
 {
+	if (clauses.empty())
+	{
+		printf("FALSE");
+		return;
+	}
 	bool first = true;
 	for (const_iterator iter = clauses.begin(); iter != clauses.end(); ++iter)
 	{
@@ -285,6 +333,8 @@ public:
 	void reindex_variable(); // this func will destroy predicate index
 	void index(); // index predicates
 
+	void erase_contradiction();
+
 	void print() const;
 
 	std::set<CNF> sentences;
@@ -292,7 +342,7 @@ public:
 	typedef std::set<CNF>::const_iterator const_iterator;
 
 	std::map<int, std::list<iterator>*> func_table;
-	typedef std::map<int, std::list<iterator>* > ::iterator iterator_table;
+	typedef std::map<int, std::list<iterator>*>::iterator iterator_table;
 	typedef std::map<int, std::list<iterator>*>::const_iterator const_iterator_table;
 
 	void operator&=(const CNFs &);
@@ -309,6 +359,7 @@ CNFs::~CNFs()
 {
 	for (iterator_table iter = func_table.begin(); iter != func_table.end(); ++iter)
 		delete iter->second;
+	func_table.clear();
 }
 
 void CNFs::reindex_variable()
@@ -346,6 +397,26 @@ void CNFs::index()
 				titer = func_table.insert(std::pair<int, std::list<iterator>*>(*kiter, new std::list<iterator>())).first;
 			titer->second->push_back(iter);
 		}
+}
+
+void CNFs::erase_contradiction()
+{
+	const_iterator iter = sentences.begin();
+	std::list<CNF> backup;
+	while (iter != sentences.end())
+	{
+		CNF cnf(*iter);
+		if (cnf.erase_contradiction())
+		{
+			backup.push_back(cnf);
+			const_iterator _iter = iter;
+			++iter;
+			sentences.erase(_iter);
+		}
+		else
+			++iter;
+	}
+	sentences.insert(backup.begin(), backup.end());
 }
 
 void CNFs::print() const

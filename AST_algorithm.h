@@ -28,8 +28,9 @@ Expression *EXP(Parser &p)
 		return ptr;
 	}
 	default: // word
-		if ('A' <= next[0] && next[0] <= 'Z')
+		if (Parser::isCharactor(next[0]))
 			return FUNC(p, next);
+		printf("Syntax error: %s\n", next.c_str());
 	}
 	return 0;
 }
@@ -70,7 +71,7 @@ Expression *OP(Parser &p)
 			return ptr;
 		default:
 			// word
-			if ('A' <= next[0] && next[0] <= 'Z')
+			if (Parser::isCharactor(next[0]))
 			{
 				Binary *_ptr = new Binary();
 				_ptr->first = FUNC(p, next);
@@ -78,6 +79,7 @@ Expression *OP(Parser &p)
 				break;
 			}
 			// unknown
+			printf("Syntax error: %s\n", next.c_str());
 			return 0;
 		}
 	}
@@ -102,7 +104,10 @@ Expression *FUNC(Parser &p, std::string name)
 			else if ('A' <= next[0] && next[0] <= 'Z')
 				ptr->add(new Constant(next));
 			else
+			{
+				printf("Syntax error: %s\n", next.c_str());
 				return 0;
+			}
 		}
 	}
 }
