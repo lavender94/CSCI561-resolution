@@ -107,8 +107,14 @@ bool resolution(CNF &query, const CNFs &kb, CNFs &history)
 					continue;
 				uni_q.index();
 				if (resolution(uni_q, kb, history))
+				{
+					delete[] dictq;
+					delete[] dicts;
 					return true;
+				}
 			}
+		delete[] dicts;
 	}
+	delete[] dictq;
 	return false;
 }
