@@ -1,4 +1,4 @@
-//#define DEBUG
+#define DEBUG
 //#define INFO
 
 #include <stdio.h>
@@ -81,7 +81,7 @@ int read_input(list<CNF*> &query, CNFs *kb)
 	delete buffer;
 	kb->erase_contradiction();
 	kb->reindex_variable();
-	kb->index();
+//	kb->index();
 	return 0;
 }
 
@@ -108,8 +108,10 @@ int main()
 	{
 		INF((*iter)->print());
 		INF(printf(":"));
-		CNFs history;
-		if (resolution(**iter, *kb, history))
+		CNFs history, _kb(*kb);
+		_kb.sentences.insert(**iter);
+		_kb.index();
+		if (resolution(**iter, _kb, history))
 		{
 			fprintf(fp, "TRUE\n");
 			INF(printf("TRUE\n"));
