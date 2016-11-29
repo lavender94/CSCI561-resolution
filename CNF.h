@@ -89,6 +89,7 @@ public:
 
 	void replace(const int *dict);
 	bool erase_contradiction();
+	bool factor();
 
 	void print() const;
 
@@ -105,6 +106,9 @@ public:
 	void operator|=(const CNF &);
 
 	bool operator<(const CNF &) const;
+	
+private:
+	bool _factor(int *dict);
 };
 
 CNF::CNF(int id, const ARG_LIST &arg_list) : n_variables(0)
@@ -254,6 +258,26 @@ bool CNF::erase_contradiction()
 	return erased;
 }
 
+bool CNF::factor()
+{
+	bool factored = false;
+	int *dict = new int[n_variables];
+	while (_factor(dict))
+	{
+		factored = true;
+		int _n_variables = n_variables;
+		replace(dict);
+		reindex_variable();
+		if (n_variables != _n_variables)
+		{
+			delete[] dict;
+			dict = new int[n_variables];
+		}
+	}
+	delete[] dict;
+	return factored;
+}
+
 void CNF::print() const
 {
 	if (clauses.empty())
@@ -323,6 +347,59 @@ inline bool CNF::operator<(const CNF &b) const
 	return false;
 }
 
+static void map_variable(int from, int to, int *dict, unsigned n)
+{
+	for (int i = 0; i < n; ++i)
+		if (dict[i] == from)
+			dict[i] = to;
+}
+
+bool CNF::_factor(int *dict)
+{
+	for (iterator func = clauses.begin(); func != clauses.end(); ++func)
+	{
+		std::set<ARG_LIST>* arg_list = func->second;
+		for (std::set<ARG_LIST>::iterator al_a = arg_list->begin(); al_a != arg_list->end(); ++al_a)
+		{
+			std::set<ARG_LIST>::iterator al_b = al_a;
+			++al_b;
+			for (; al_b != arg_list->end(); ++al_b)
+			{
+				//init dict
+				for (int i=0; i<n_variables; ++i)
+					dict[i] = ~i;
+				//unify
+				bool success = true;
+				for (ARG_LIST::const_iterator ita = al_a->args.begin(), itb = al_b->args.begin(); ita != al_a->args.end(); ++ita, ++itb)
+				{
+					int ida = *ita, idb = *itb;
+					if (*ita < 0) // original variable
+						ida = dict[~ida];
+					if (*itb < 0) // original variable
+						idb = dict[~idb];
+					if (ida < 0) // variable a
+						if (idb < 0) // variable b
+							map_variable(idb, ida, dict, n_variables);
+						else // constant b
+							map_variable(ida, idb, dict, n_variables);
+					else // constant a
+						if (idb < 0) // variable b
+							map_variable(idb, ida, dict, n_variables);
+						else // constant b
+							if (ida != idb)
+							{
+								success = false;
+								break; // unification failed
+							}
+				}
+				if (success)
+					return true;
+			}
+		}
+	}
+	return false;
+}
+
 class CNFs
 {
 public:
@@ -334,6 +411,7 @@ public:
 	void index(); // index predicates
 
 	void erase_contradiction();
+	void factor();
 
 	void print() const;
 
@@ -415,6 +493,24 @@ void CNFs::erase_contradiction()
 		}
 		else
 			++iter;
+	}
+	sentences.insert(backup.begin(), backup.end());
+}
+
+void CNFs::factor()
+{
+	const_iterator iter = sentences.begin();
+	std::list<CNF> backup;
+	while (iter != sentences.end())
+	{
+		CNF cnf(*iter);
+		if (cnf.factor())
+		{
+			cnf.erase_contradiction();
+			if (!cnf.clauses.empty())
+				backup.push_back(cnf);
+		}
+		++iter;
 	}
 	sentences.insert(backup.begin(), backup.end());
 }

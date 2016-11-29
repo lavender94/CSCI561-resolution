@@ -1,4 +1,4 @@
-#define DEBUG
+//define DEBUG
 //#define INFO
 
 #include <stdio.h>
@@ -81,6 +81,8 @@ int read_input(list<CNF*> &query, CNFs *kb)
 	delete buffer;
 	kb->erase_contradiction();
 	kb->reindex_variable();
+	kb->factor();
+// since a new query will be added into kb, no need to index it now
 //	kb->index();
 	return 0;
 }

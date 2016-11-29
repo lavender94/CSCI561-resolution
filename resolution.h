@@ -99,6 +99,7 @@ bool resolution(CNF &query, const CNFs &kb, CNFs &history)
 				uni_q |= uni_s;
 				uni_q.erase_contradiction();
 				uni_q.reindex_variable();
+				uni_q.factor();
 				RESOLUTION_DBG(printf("\n=>"));
 				RESOLUTION_DBG(uni_q.print());
 				RESOLUTION_DBG(printf("\n"));
