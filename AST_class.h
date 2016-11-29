@@ -290,7 +290,7 @@ public:
 
 	void negation() {}
 	void simplify() {}
-	CNFs *cnfs() { return (CNFs*)id; }
+	CNFs *cnfs() { return (CNFs*)(long)id; }
 
 	void print();
 
@@ -325,7 +325,7 @@ class Variable : public Expression
 public:
 	void negation() {}
 	void simplify() {}
-	CNFs *cnfs() { return (CNFs*)(~id); }
+	CNFs *cnfs() { return (CNFs*)(long)(~id); }
 
 	void print();
 
