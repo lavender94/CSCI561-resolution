@@ -96,8 +96,31 @@ bool resolution(CNF &query, const CNFs &kb, CNFs &history)
 				RESOLUTION_DBG(uni_s.print());
 				uni_q.replace(dictq);
 				uni_s.replace(dicts);
+				// erase literals
+				CNF::iterator entry_q = uni_q.clauses.find(*key);
+				std::set<ARG_LIST>::iterator iter_q = entry_q->second->begin();
+				CNF::iterator entry_s = uni_s.clauses.find(~(*key));
+				std::set<ARG_LIST> *set_arg_s = entry_s->second;
+				for (std::set<ARG_LIST>::iterator iter_s = set_arg_s->begin(); iter_s != set_arg_s->end(); ++iter_s)
+					if (*iter_q == *iter_s)
+					{
+						set_arg_s->erase(iter_s);
+						if (set_arg_s->empty())
+						{
+							delete set_arg_s;
+							uni_s.clauses.erase(entry_s);
+						}
+						break;
+					}
+				entry_q->second->erase(iter_q);
+				if (entry_q->second->empty())
+				{
+					delete entry_q->second;
+					uni_q.clauses.erase(entry_q);
+				}
 				uni_q |= uni_s;
-				uni_q.erase_contradiction();
+				if (uni_q.erase_contradiction())
+					continue;
 				uni_q.reindex_variable();
 				uni_q.factor();
 				RESOLUTION_DBG(printf("\n=>"));

@@ -1,4 +1,4 @@
-//define DEBUG
+//#define DEBUG
 //#define INFO
 
 #include <stdio.h>

@@ -88,7 +88,7 @@ public:
 	void index() const; // index predicates
 
 	void replace(const int *dict);
-	bool erase_contradiction();
+	bool erase_contradiction(); // modified to only find contradiction
 	bool factor();
 
 	void print() const;
@@ -134,6 +134,7 @@ CNF::~CNF()
 
 bool CNF::reindex_variable()
 {
+//	print();
 	bool act = false;
 	std::map<int, int> reindex;
 	for (iterator iter = clauses.begin(); iter != clauses.end(); ++iter)
@@ -172,6 +173,7 @@ bool CNF::reindex_variable()
 		}
 	}
 	n_variables = reindex.size();
+//	printf("  %d\n", n_variables);
 	return act;
 }
 
@@ -235,10 +237,13 @@ bool CNF::erase_contradiction()
 		{
 			if (*ai == *bi)
 			{
+				return true;
+				/*
 				std::set<ARG_LIST>::iterator _ai = ai++, _bi = bi++;
 				al->erase(_ai);
 				bl->erase(_bi);
 				erased = true;
+				*/
 			}
 			else if (*ai < *bi) ++ai;
 			else ++bi;
@@ -267,14 +272,9 @@ bool CNF::factor()
 		factored = true;
 		int _n_variables = n_variables;
 		replace(dict);
-		reindex_variable();
-		if (n_variables != _n_variables)
-		{
-			delete[] dict;
-			dict = new int[n_variables];
-		}
 	}
 	delete[] dict;
+	reindex_variable();
 	return factored;
 }
 
@@ -442,22 +442,13 @@ CNFs::~CNFs()
 
 void CNFs::reindex_variable()
 {
-	const_iterator iter = sentences.begin();
-	std::list<CNF> backup;
-	while (iter != sentences.end())
+	std::list<CNF> backup(sentences.begin(), sentences.end());
+	sentences.clear();
+	for (std::list<CNF>::iterator iter = backup.begin(); iter != backup.end(); ++iter)
 	{
-		CNF cnf(*iter);
-		if (cnf.reindex_variable())
-		{
-			backup.push_back(cnf);
-			const_iterator _iter = iter;
-			++iter;
-			sentences.erase(_iter);
-		}
-		else
-			++iter;
+		iter->reindex_variable();
+		sentences.insert(*iter);
 	}
-	sentences.insert(backup.begin(), backup.end());
 }
 
 void CNFs::index()
@@ -480,13 +471,13 @@ void CNFs::index()
 void CNFs::erase_contradiction()
 {
 	const_iterator iter = sentences.begin();
-	std::list<CNF> backup;
+//	std::list<CNF> backup;
 	while (iter != sentences.end())
 	{
 		CNF cnf(*iter);
 		if (cnf.erase_contradiction())
 		{
-			backup.push_back(cnf);
+//			backup.push_back(cnf);
 			const_iterator _iter = iter;
 			++iter;
 			sentences.erase(_iter);
@@ -494,7 +485,7 @@ void CNFs::erase_contradiction()
 		else
 			++iter;
 	}
-	sentences.insert(backup.begin(), backup.end());
+//	sentences.insert(backup.begin(), backup.end());
 }
 
 void CNFs::factor()
@@ -506,8 +497,8 @@ void CNFs::factor()
 		CNF cnf(*iter);
 		if (cnf.factor())
 		{
-			cnf.erase_contradiction();
-			if (!cnf.clauses.empty())
+			if (!cnf.erase_contradiction())
+			//if (!cnf.clauses.empty())
 				backup.push_back(cnf);
 		}
 		++iter;
