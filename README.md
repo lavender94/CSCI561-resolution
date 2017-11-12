@@ -13,4 +13,4 @@ logic resolution by refutation
 - resolution.h    algorithms for resolution and unification
 
 ## Compilation
-- gcc *.cpp -o resolution.exe
+- g++ *.cpp -o resolution.exe
