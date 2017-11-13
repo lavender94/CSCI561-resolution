@@ -1,5 +1,4 @@
-//#define DEBUG
-//#define INFO
+#include "common.h"
 
 #include <stdio.h>
 #include <list>
