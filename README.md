@@ -14,3 +14,5 @@ logic resolution by refutation
 
 ## Compilation
 - g++ *.cpp -o resolution.exe
+- enable INFO for std print out
+- enable DEBUG for specific resolution procedure
