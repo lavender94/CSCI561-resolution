@@ -55,3 +55,41 @@ std::string Parser::next()
 		return "";
 	}
 }
+
+std::string Parser::lookahead(int n)
+{
+    int _ptr = ptr + n;
+	if (_ptr >= len)
+		return "";
+	char c = line[_ptr++];
+	switch (c)
+	{
+	case '(':
+		return "(";
+	case ')':
+		return ")";
+	case '~':
+		return "~";
+	case '&':
+		return "&";
+	case '|':
+		return "|";
+	case '=':
+		return "=>";
+	case ',':
+		return ",";
+	default: // word
+		if (isCharactor(c))
+		{
+			word[0] = c;
+			unsigned pw = 1;
+			while (isCharactor(line[_ptr]))
+			{
+				word[pw++] = line[_ptr++];
+			}
+			word[pw] = '\0';
+			return std::string(word);
+		}
+		return "";
+	}
+}

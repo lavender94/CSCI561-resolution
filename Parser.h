@@ -23,7 +23,8 @@ public:
 
 	void init();
 	void feed(const char *line);
-	std::string next();
+	std::string next(); // "" for end
+	std::string lookahead(int n);
 	
 private:
 	unsigned ptr, len;

@@ -10,24 +10,46 @@ Expression *buildAST(Parser &p)
 
 Expression *EXP(Parser &p)
 {
-	std::string next = p.next();
-	switch (next[0])
+    Expression *ptr = 0;
+	std::string next;
+	while ((next = p.next()).length() > 0)
 	{
-	case '(':
-		return OP(p);
-	case '~':
-	{
-		Unary *ptr = new Unary();
-		ptr->op = NOT;
-		ptr->first = EXP(p);
-		return ptr;
-	}
-	default: // word
-		if (Parser::isCharactor(next[0]))
-			return FUNC(p, next);
-		printf("Syntax error: %s\n", next.c_str());
-	}
-	return 0;
+    	switch (next[0])
+    	{
+    	case '(':
+    		return OP(p);
+    	case '~':
+    	{
+    		Unary *_ptr = new Unary();
+    		_ptr->op = NOT;
+    		_ptr->first = EXP(p);
+    		return _ptr;
+    	}
+    	case '&':
+		case '|':
+		case '=':
+		{ // ptr
+		    Binary *_ptr = new Binary();
+	        _ptr->first = ptr;
+			_ptr->op = strToOp(next);
+			_ptr->second = EXP(p);
+			return _ptr;
+        }
+    	default: // word
+    		if (Parser::isCharactor(next[0]))
+    		{
+    		    ptr = FUNC(p, next);
+    		    std::string lookahead = p.lookahead(0);
+                if (lookahead != "" && lookahead[0] == ')')
+                    return ptr;
+    		    break;
+            }
+    		printf("Syntax error: %s\n", next.c_str());
+    	}
+    }
+    if (!ptr)
+	    printf("Empty expression\n");
+	return ptr;
 }
 
 Expression *OP(Parser &p)
@@ -78,6 +100,7 @@ Expression *OP(Parser &p)
 			return 0;
 		}
 	}
+	return ptr;
 }
 
 Expression *FUNC(Parser &p, std::string name)
