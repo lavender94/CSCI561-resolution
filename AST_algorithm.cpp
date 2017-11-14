@@ -17,31 +17,167 @@ Expression *EXP(Parser &p)
     	switch (next[0])
     	{
     	case '(':
-    		return OP(p);
+    	{
+    	    ptr = EXP3(p);
+    	    break;
+    	}
     	case '~':
     	{
     		Unary *_ptr = new Unary();
     		_ptr->op = NOT;
-    		_ptr->first = EXP(p);
-    		return _ptr;
+    		_ptr->first = EXP2(p);
+    		ptr = _ptr;
+    		break;
     	}
     	case '&':
 		case '|':
 		case '=':
-		{ // ptr
+		{
 		    Binary *_ptr = new Binary();
 	        _ptr->first = ptr;
 			_ptr->op = strToOp(next);
-			_ptr->second = EXP(p);
-			return _ptr;
+			std::string lookahead = p.lookahead(0);
+			if (lookahead.length() > 0)
+    			switch (lookahead[0])
+                {
+                    case '(':
+                        p.next();
+                        _ptr->second = EXP3(p);
+                        break;
+                    case '~':
+                    {
+                        p.next();
+                        Unary *__ptr = new Unary();
+                		__ptr->op = NOT;
+                		__ptr->first = EXP2(p);
+                		_ptr->second = __ptr;
+                		break;
+                    }
+                    default:
+                        if (Parser::isCharactor(lookahead[0]))
+                		{
+                		    std::string name = p.next();
+                		    _ptr->second = FUNC(p, name);
+                		    break;
+                        }
+                        printf("Syntax error: %s %s\n", next.c_str(), lookahead.c_str());
+                }
+            else 
+                printf("Syntax error: %s \n", next.c_str());
+			ptr = _ptr;
+			break;
         }
     	default: // word
     		if (Parser::isCharactor(next[0]))
     		{
     		    ptr = FUNC(p, next);
-    		    std::string lookahead = p.lookahead(0);
-                if (lookahead != "" && lookahead[0] == ')')
-                    return ptr;
+    		    break;
+            }
+    		printf("Syntax error: %s\n", next.c_str());
+    	}
+    }
+    if (!ptr)
+	    printf("Empty expression\n");
+	return ptr;
+}
+
+Expression *EXP2(Parser &p)
+{
+    Expression *ptr = 0;
+	std::string next;
+	while ((next = p.next()).length() > 0)
+	{
+    	switch (next[0])
+    	{
+    	case '(':
+    		return EXP3(p);
+    	case '~':
+    	{
+    		Unary *_ptr = new Unary();
+    		_ptr->op = NOT;
+    		_ptr->first = EXP2(p);
+    		return _ptr;
+    	}
+    	default: // word
+    		if (Parser::isCharactor(next[0]))
+    		    return FUNC(p, next);
+    		printf("Syntax error: %s\n", next.c_str());
+    	}
+    }
+    if (!ptr)
+	    printf("Empty expression\n");
+	return ptr;
+}
+
+Expression *EXP3(Parser &p)
+{
+    Expression *ptr = 0;
+	std::string next;
+	while ((next = p.next()).length() > 0)
+	{
+    	switch (next[0])
+    	{
+    	case '(':
+    	{
+    	    ptr = EXP3(p);
+    		break;
+    	}
+    	case '~':
+    	{
+    		Unary *_ptr = new Unary();
+    		_ptr->op = NOT;
+    		_ptr->first = EXP2(p);
+    		ptr = _ptr;
+    		break;
+    	}
+    	case '&':
+		case '|':
+		case '=':
+		{
+		    Binary *_ptr = new Binary();
+	        _ptr->first = ptr;
+			_ptr->op = strToOp(next);
+			std::string lookahead = p.lookahead(0);
+			if (lookahead.length() > 0)
+    			switch (lookahead[0])
+                {
+                    case '(':
+                        p.next();
+                        _ptr->second = EXP3(p);
+                        break;
+                    case '~':
+                    {
+                        p.next();
+                        Unary *__ptr = new Unary();
+                		__ptr->op = NOT;
+                		__ptr->first = EXP2(p);
+                		_ptr->second = __ptr;
+                		break;
+                    }
+                    default:
+                        if (Parser::isCharactor(lookahead[0]))
+                		{
+                		    std::string name = p.next();
+                		    _ptr->second = FUNC(p, name);
+                		    break;
+                        }
+                        printf("Syntax error: %s %s\n", next.c_str(), lookahead.c_str());
+                }
+            else 
+                printf("Syntax error: %s \n", next.c_str());
+			ptr = _ptr;
+			break;
+        }
+        case ')':
+        {
+            if (!ptr)
+	            printf("Empty expression\n");
+            return ptr;
+        }
+    	default: // word
+    		if (Parser::isCharactor(next[0]))
+    		{
+    		    ptr = FUNC(p, next);
     		    break;
             }
     		printf("Syntax error: %s\n", next.c_str());
