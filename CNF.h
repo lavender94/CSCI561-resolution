@@ -36,7 +36,7 @@ public:
 
 	void replace(const int *dict);
 	bool erase_contradiction(); // modified to only find contradiction
-	bool factor();
+	bool factor(std::set<CNF> &res) const;
 
 	void print() const;
 
@@ -55,7 +55,7 @@ public:
 	bool operator<(const CNF &) const;
 	
 private:
-	bool _factor(int *dict);
+	bool _factor(std::list<int*> &dicts) const;
 };
 
 class CNFs

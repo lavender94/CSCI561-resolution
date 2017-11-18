@@ -212,18 +212,25 @@ bool CNF::erase_contradiction()
 	return erased;
 }
 
-bool CNF::factor()
+bool CNF::factor(std::set<CNF> &res) const
 {
 	bool factored = false;
-	int *dict = new int[n_variables];
-	while (_factor(dict))
+	std::list<int*> dicts;
+	if (_factor(dicts))
 	{
 		factored = true;
-		int _n_variables = n_variables;
-		replace(dict);
+		for (std::list<int*>::iterator iter = dicts.begin(); iter != dicts.end(); ++iter)
+		{
+		  CNF temp(*this);
+		  temp.replace(*iter);
+		  delete[] *iter;
+		  temp.reindex_variable();
+		  if (temp.erase_contradiction() || res.find(temp) != res.end())
+		    continue;
+		  if (!temp.factor(res))
+		    res.insert(temp);
+		}
 	}
-	delete[] dict;
-	reindex_variable();
 	return factored;
 }
 
@@ -303,14 +310,15 @@ static void map_variable(int from, int to, int *dict, unsigned n)
 			dict[i] = to;
 }
 
-bool CNF::_factor(int *dict)
+bool CNF::_factor(std::list<int*> &dicts) const
 {
-	for (iterator func = clauses.begin(); func != clauses.end(); ++func)
+  int *dict = new int[n_variables];
+	for (const_iterator func = clauses.begin(); func != clauses.end(); ++func)
 	{
 		std::set<ARG_LIST>* arg_list = func->second;
-		for (std::set<ARG_LIST>::iterator al_a = arg_list->begin(); al_a != arg_list->end(); ++al_a)
+		for (std::set<ARG_LIST>::const_iterator al_a = arg_list->begin(); al_a != arg_list->end(); ++al_a)
 		{
-			std::set<ARG_LIST>::iterator al_b = al_a;
+			std::set<ARG_LIST>::const_iterator al_b = al_a;
 			++al_b;
 			for (; al_b != arg_list->end(); ++al_b)
 			{
@@ -342,11 +350,15 @@ bool CNF::_factor(int *dict)
 							}
 				}
 				if (success)
-					return true;
+				{
+				  dicts.push_back(dict);
+				  dict = new int[n_variables];
+				}
 			}
 		}
 	}
-	return false;
+	delete[] dict;
+	return !dicts.empty();
 }
 
 CNFs::CNFs(const CNFs &b)
@@ -412,20 +424,10 @@ void CNFs::erase_contradiction()
 
 void CNFs::factor()
 {
-	const_iterator iter = sentences.begin();
-	std::list<CNF> backup;
-	while (iter != sentences.end())
-	{
-		CNF cnf(*iter);
-		if (cnf.factor())
-		{
-			if (!cnf.erase_contradiction())
-			//if (!cnf.clauses.empty())
-				backup.push_back(cnf);
-		}
-		++iter;
-	}
-	sentences.insert(backup.begin(), backup.end());
+	std::set<CNF> factor_res;
+	for (const_iterator iter = sentences.begin(); iter != sentences.end(); ++iter)
+		iter->factor(factor_res);
+	sentences.insert(factor_res.begin(), factor_res.end());
 }
 
 void CNFs::print() const

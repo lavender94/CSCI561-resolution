@@ -109,20 +109,29 @@ bool resolution(CNF &query, const CNFs &kb, CNFs &history)
 				if (uni_q.erase_contradiction())
 					continue;
 				uni_q.reindex_variable();
-				uni_q.factor();
-				RESOLUTION_DBG(printf("\n=>"));
-				RESOLUTION_DBG(uni_q.print());
-				RESOLUTION_DBG(printf("\n"));
-				std::pair<CNFs::iterator, bool> ret = history.sentences.insert(uni_q);
-				if (ret.second == false)
-					continue;
-				uni_q.index();
-				if (resolution(uni_q, kb, history))
+				std::set<CNF> factor_res;
+				if (!uni_q.factor(factor_res))
+				  factor_res.insert(uni_q);
+				for (std::set<CNF>::iterator iter = factor_res.begin(); iter != factor_res.end(); ++iter)
 				{
-					delete[] dictq;
-					delete[] dicts;
-					return true;
-				}
+  				RESOLUTION_DBG(printf("\n=>"));
+  				RESOLUTION_DBG(iter->print());
+  				RESOLUTION_DBG(printf("\n"));
+  			}
+  			for (std::set<CNF>::iterator iter = factor_res.begin(); iter != factor_res.end(); ++iter)
+  			{
+  				std::pair<CNFs::iterator, bool> ret = history.sentences.insert(*iter);
+  				if (ret.second == false)
+  					continue;
+  				CNF new_q(*iter);
+  				new_q.index();
+  				if (resolution(new_q, kb, history))
+  				{
+  					delete[] dictq;
+  					delete[] dicts;
+  					return true;
+  				}
+			  }
 			}
 		delete[] dicts;
 	}
